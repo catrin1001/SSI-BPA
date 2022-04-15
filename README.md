@@ -1,134 +1,97 @@
-# Business Partner Agent [![join the chat][discord-image]][discord-url]
+# Business Partner Agent
 
-[discord-url]: https://discord.gg/hyperledger
-[discord-image]: https://img.shields.io/badge/DISCORD-JOIN%20CHAT-green
-
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![CI/CD](https://github.com/hyperledger-labs/business-partner-agent/workflows/CI/CD/badge.svg)](https://github.com/hyperledger-labs/business-partner-agent/actions?query=workflow%3ACI%2FCD+branch%3Amain)
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/hyperledger-labs/business-partner-agent)
-
-# Short Description
 The BPA allows organizations to verify, hold, and issue verifiable credentials.
 
-The Business Partner Agent is built on top of the Hyperledger Self-Sovereign Identity Stack, in particular 
-[Hyperledger Indy](https://www.hyperledger.org/use/hyperledger-indy) and 
-[Hyperledger Cloud Agent Python](https://github.com/hyperledger/aries-cloudagent-python).
+The Business Partner Agent is built on top of the Hyperledger Self-Sovereign Identity Stack, in particular Hyperledger Indy and Hyperledger Cloud Agent Python.
 
-![](https://i.imgur.com/kz4s0gQ.png)
+![(image)](https://i.postimg.cc/T1rFsz7j/BPA.jpg)
 
-## Most Important Features
+## Prerequistes
+The following tools should be installed on your developer machine:
+- Ubuntu 20.04 VM
+- docker
+- docker-compose
 
-- Attach a public organizational profile to your public DID (either did:indy/sov or did:web)
-- Add business partners by their public DIDs or via invitations and view their public profiles
-- Business partners can be other cloud agents or smartphone wallets
-- Basic chat functionality to interact with business partners
-- Add documents based on Indy schemas and request verifications from business partners
-- Issue verifiable credentials to your business partners
-- Create templates for presentation requests supporting zero knowledge proofs (selective disclose and predicate proofs) 
-- Send and respond to presentation requests
+### Create virtual machine in Azure with Ubuntu 20.04 VM
+1.	Type virtual machines in the search.
+2.	Under Services, select Virtual machines.
+3.	In the Virtual machines page, select Create and then Virtual machine. The Create a virtual machine page opens.
+4.	In the Basics tab, under Project details, make sure the correct subscription is selected and then choose to Create new resource group. 
+5.	Under Instance details, type your Virtual machine name, and choose Ubuntu 20.04 LTS - Gen2 for your Image. Leave the other defaults. The default size and pricing are only shown as an example. Size availability and pricing is dependent on your region and subscription.
+6.	Under Administrator account, select SSH public key.
+7.	In Username type azureuser.
+8.	For SSH public key source, leave the default of Generate new key pair, and then type your Key pair name.
+9.	Under Inbound port rules > Public inbound ports, choose Allow selected ports and then select SSH (22) and HTTP (80) from the drop-down.
+10.	Leave the remaining defaults and then select the Review + create button at the bottom of the page.
+11.	On the Create a virtual machine page, you can see the details about the VM you are about to create. When you are ready, select Create.
+12.	When the Generate new key pair window opens, select Download private key and create resource. Your key file will be download as yourname.pem. Make sure you know where the .pem file was downloaded, you will need the path to it in the next step.
+13.	When the deployment is finished, select Go to resource.
+14.	On the page for your new VM, select the public IP address and copy it to your clipboard.
+15. open ports: 8080, 8030, 8031, 8090
 
-## Features in Detail
+### Install Docker
+```shell
+sudo apt update
+sudo apt upgrade
+sudo apt install docker.io
+docker --version
+```
+### Install docker-compose
+```shell
+sudo apt install curl
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+exit and login again
+```shell
+sudo docker-compose -v
+```
+## Set up BPA:
+```shell
+git clone https://github.com/hyperledger-labs/business-partner-agent
+cd scripts
+./register-dids.sh
+```
+then you can edit .env file with below command:
+```shell
+nano .env
+```
+![(image)](https://i.postimg.cc/GpM482CN/env.jpg)
+## Spinning up a single BPA
+- For a local test, just run
+```s
+# If not done already, run
+# ./register-dids.sh
+docker-compose up
+```
 
-| Role/Feature     | Flow                                                                   | Protocol Version                  |
-|------------------|------------------------------------------------------------------------|-----------------------------------|
-| Issuer           |                                                                        |                                   |
-|                  | auto: issue credential                                                 | indy: v1, v2 <br/>w3c: v2         |
-|                  | manual: send credential offer to holder                                | indy: v1, v2 <br/>w3c: v2         |
-|                  | manual: receive credential proposal from holder                        | indy: v1, v2 <br/>w3c: v2         |
-|                  | manual: decline credential proposal from holder and provide reason     | indy: v1, v2 <br/>w3c: v2         |
-|                  | send credential offer as invitation attachment                         | indy: v2                          |
-|                  | revoke issued credential (requires tails server)                       | indy: v1, v2 <br/>w3c: n/a        |
-|                  | send revocation notification                                           | indy: v1, v2 <br/>w3c: n/a        |
-| Holder           |                                                                        |                                   |
-|                  | auto: receive credential                                               | indy: v1, v2 <br/>w3c: v2         |
-|                  | manual: send credential proposal to issuer (based on document)         | indy: v1, v2 <br/>w3c: v2         |
-|                  | manual: receive credential offer from issuer                           | indy: v1, v2 <br/>w3c: v2         |
-|                  | manual: decline credential offer from issuer                           | indy: v1, v2 <br/>w3c: v2         |
-|                  | scheduled revocation check on all received credentials                 | indy: v1, v2 <br/>w3c: n/a        |
-|                  | receive revocation notification                                        | indy: v1, v2 <br/>w3c: n/a        |
-| Prover           |                                                                        |                                   |
-|                  | auto: send presentation to verifier                                    | indy: v1, v2                      |
-|                  | auto: answer presentation request                                      | indy: v1, v2                      |
-|                  | manual: accept/decline presentation request and provide reason         | indy: v1, v2                      |
-| Verifier         |                                                                        |                                   |
-|                  | auto: request presentation from prover based on proof template         | indy: v1, v2                      |
-|                  | auto: receive and verify presentation from prover                      | indy: v1, v2                      |
-| Connection       |                                                                        |                                   |
-|                  | connect by did:sov, did:web (if endpoint is aca-py)                    | did-exchange                      |
-|                  | receive invitation by URL                                              | connection-protocol, OOB          |
-|                  | create invitation (barcode or URL)                                     | connection-protocol, OOB          |
-|                  | auto: accept incoming connection                                       | did-exchange, connection-protocol |
-|                  | manual: accept incoming connection                                     | did-exchange, connection-protocol |
-|                  | optional: scheduled trust ping to check connection status              | n/a                               |
-|                  | tag a connection, e.g. as trusted issuer                               | n/a                               |
-| Ledger           |                                                                        |                                   |
-|                  | send schema to the ledger (requires endorser role)                     | n/a                               |
-|                  | create a credential definition on the ledger (requires endorser role)  | n/a                               |
-| Basic Message    |                                                                        |                                   |
-|                  | send and receive basic messages via chat window                        | n/a                               |
-| Tasks/Activities |                                                                        |                                   |
-|                  | list of tasks that need attention, and list of past activities         | n/a                               |
-| TAA              |                                                                        |                                   |
-|                  | if ledger is configured with a TAA, show it and give option to accept  | n/a                               |
-| Read Only Ledger |                                                                        |                                   |
-|                  | if mode is set to web only                                             | n/a                               |
-| Public Profile   |                                                                        |                                   |
-|                  | web accessible (self signed) imprint based on credentials or documents | n/a                               |
+### Accessing the frontend
 
-## Upcoming Features
+- The frontend will be served at `http://yourip:8080`. If you did not change the password in `.env` the default login is "admin"/"changeme".
+- The backends swagger will be served at: `http://yourip:8080/swagger-ui`
+- aca-py's swagger api will be served at: `http://yourip:8031/api/doc`
 
-- Support additional verifiable credential formats (W3C JSON-LD VCs in addition to Indy Anoncreds)
-- Business rules to automate processes
-- Endorser support (both as endorser and transaction author)
-- Multi-user and roles support
+## Spinning up two local instances of the BPA
 
-## Project Status
+If you have run the `register-dids.sh` script you should have a .env file. In the file make sure the `BPA_SCHEME` is set to `BPA_SCHEME=http`.
 
-A first alpha version of Business Partner Agent is available, see
-[Helm Chart](https://github.com/hyperledger-labs/business-partner-agent-chart) and [Docker images](https://github.com/orgs/hyperledger-labs/packages/container/package/business-partner-agent)
-It is not ready for production use.  Releases are in general considered "alpha", which means API may change at any time and we do not have explicit / planned system tests (See also [Publishing](PUBLISHING.md)). 
+Afterwards it is the same as above, but now we use a profile to enable a second instance
 
-# Getting Started
+```s
+# If not done already, run
+# ./register-dids.sh
+docker-compose --profile second_bpa up
+```
 
-The Business Partner Agent supports two modes
-1. Web mode: Serves a did:web identity and allows to publish a public organizational profile.
-2. Indy mode: Utilizes an identity on an Hyperledger Indy ledger (default: https://indy-test.bosch-digital.de/)
+### Accessing the second frontend
+- The second frontend will be served at `http://yourip:8090`. If you did not change the password in `.env` the default login is "admin"/"changeme".
+- The second backends swagger will be served at: `http://yourip:8090/swagger-ui`
+- The second aca-py's swagger api will be served at: `http://yourip:8041/api/doc`
 
-Both modes are currently coupled with a specific instance of an Indy network in order to read schemas and credential definitions.
-The agent is started in Indy mode per default and tries to connect with our test network. Please refer to the [.env-example file](scripts/.env-example) to start the agent in web mode or connect to a different Indy network.
+![(image)](https://i.postimg.cc/Bt90Xv09/BPA2.jpg)
 
-## Run a business partner agent with docker-compose or helm
+### Stopping the instance
 
-You can run the agent [via docker-compose](scripts/) (recommended for e.g. development / debugging) or deploy it into a [kubernetes cluster (via helm)](https://github.com/hyperledger-labs/business-partner-agent-chart).
-
-## Run a business partner agent with gitpod
-
-The easiest way to run two agents, is to work with [gitpod](https://gitpod.io/). 
-Gitpod launches a pre-configured IDE in the browser and the agents being launched in the background.
-See [debugging docu](https://github.com/hyperledger-labs/business-partner-agent/blob/main/docs/DEBUGGING.md#fronend-and-backend-with-gitpod).
-
-# Documentation and Tutorials
-
-User documentation is located at https://hyperledger-labs.github.io/business-partner-agent
-
-Learn how to contribute in [Contributing](CONTRIBUTING.md). You can also start by filing an issue.
-
-Regarding release process, we do not follow a strict process yet, nevertheless we follow the guidelines described in [Publishing](PUBLISHING.md).
-
-Learn what aries protocols can be controlled by the BPA in [aca-py-args](scripts/acapy-static-args.yml)
-
-## Business Partner Agent in Action
-- [COP26 Presented by BC Goverment and OpenEarth Foundation](https://www.youtube.com/watch?v=q0Jml3isSh8)
-- [Use Case and Technical Demonstration Playlist](https://www.youtube.com/watch?v=TGiiNOoVoJs&list=PL9CV_8JBQHiooHv05idOTrR2eBAJM89LX)
-
-# Hyperledger Labs Sponsor
-- https://github.com/swcurran Co-Chair of the Aries Working Group
-
-# Credits
-
-See [Credits](./CREDITS.md)
-
-# License
-
-Project source code files are made available under the Apache License, Version 2.0 (Apache-2.0), located in the [LICENSE](LICENSE) file. Project documentation files are made available under the Creative Commons Attribution 4.0 International License (CC-BY-4.0), available at http://creativecommons.org/licenses/by/4.0/.
+```s
+docker-compose down
+```
