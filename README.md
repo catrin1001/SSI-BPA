@@ -56,7 +56,7 @@ then you can edit .env file with below command:
 ```shell
 nano .env
 ```
-![(image)](https://i.postimg.cc/GpM482CN/env.jpg)
+![(image)](https://i.postimg.cc/rwZdCdLS/env.jpg)
 ## Spinning up a single BPA
 - For a local test, just run
 ```s
